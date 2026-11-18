@@ -1,4 +1,3 @@
 # folder | display label | optional URL of data folder
-rrfsv2x|RRFSv2X
 gaea_rrfsv2c|RRFSv2c (Gaea)
 rrfs_mpasjedi_conv_sate|RRFS MPAS-JEDI Conventional + Satellite
