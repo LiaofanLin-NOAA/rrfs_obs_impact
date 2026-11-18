@@ -14,7 +14,8 @@
 <div><label for="startDate">Start date (UTC)</label><input id="startDate" type="date" required></div><div><label for="startHour">Hour</label><select id="startHour" aria-label="Start hour UTC"></select></div>
 <div><label for="endDate">End date (UTC)</label><input id="endDate" type="date" required></div><div><label for="endHour">Hour</label><select id="endHour" aria-label="End hour UTC"></select></div>
 <button id="load" disabled type="submit">Display</button><button id="yesterday" class="secondary" type="button">Previous UTC day</button>
-</div></form><div id="status" class="status" role="status" aria-live="polite">Loading experiments…</div><div class="note">Start and end hours are inclusive · Default: yesterday 00–23 UTC · Maximum window: 28 days</div></section>
+</div></form><div id="status" class="status" role="status" aria-live="polite">Loading experiments…</div><div class="note">Start and end hours are inclusive · Default: yesterday 00–23 UTC · Maximum window: 28 days</div>
+<div id="dataAvailability" hidden></div></section>
 <section class="stats" aria-label="Data coverage"><div class="stat"><label>Available / requested cycles</label><div class="value" id="coverage">—</div></div><div class="stat"><label>Observation types</label><div class="value" id="types">—</div></div><div class="stat"><label>Selected period (UTC)</label><div class="value small" id="period">—</div></div><div class="stat"><label>Experiment</label><div class="value small" id="selected">—</div></div></section>
 <section class="panel"><h2 id="chartTitle">Count and departure statistics</h2><div style="margin:14px 0"><label for="dataType">Data type</label><select id="dataType" style="min-width:260px" disabled></select> <button id="showAll" class="secondary" type="button" disabled>Display all data types</button></div><p class="note">Choose any data type to display its count and OMB/OMA min, mean, and max. Departures use the same accepted subset as impact, in native diagnostic units. Wind pools U and V components; satellite statistics pool accepted channels. Older three-column reports show count only. Move the pointer across either plot to see the nearest UTC cycle, observation count, and OMB/OMA values. The departure axis is centered on zero, marked by a dark horizontal line.</p><div class="controls" style="margin:12px 0"><button id="savePNG" class="secondary" type="button" disabled>Save PNG</button><button id="saveSVG" class="secondary" type="button" disabled>Save SVG</button></div><p class="note" id="windowNote">Choose a window and display the available cycle reports.</p><div class="chart-scroll" id="chart"><div class="empty">Loading…</div></div><p class="note" id="averagingNote">Values are shown for each individual UTC cycle without time averaging. Missing cycles and unavailable statistics appear as gaps; lines do not bridge them. Missing-type zero counts can also reflect absent diagnostics.</p><details id="tableDetails" hidden><summary>View numerical values</summary><div class="table-scroll"><table><thead><tr><th>UTC cycle</th><th>Count</th><th>OMB min</th><th>OMB mean</th><th>OMB max</th><th>OMA min</th><th>OMA mean</th><th>OMA max</th></tr></thead><tbody id="table"></tbody></table></div></details></section>
 
@@ -144,5 +145,20 @@ async function saveFigure(format,target){
  }catch(e){status(e.message,true)}
 }
 async function init(){ $('savePNG').addEventListener('click',()=>saveFigure('png'));$('saveSVG').addEventListener('click',()=>saveFigure('svg'));for(const id of ['startHour','endHour'])for(let h=0;h<24;h++){const opt=document.createElement('option');opt.value=String(h).padStart(2,'0');opt.textContent=opt.value;$(id).append(opt)}resetDates();$('controls').addEventListener('submit',e=>{e.preventDefault();load()});$('yesterday').addEventListener('click',()=>{resetDates();if(experiments.length)load()});$('experiment').addEventListener('change',load);try{const r=await fetch('./experiments.txt',{cache:'no-store'});if(!r.ok)throw Error('Could not read experiments.txt (HTTP '+r.status+').');experiments=parseExperiments(await r.text());$('experiment').replaceChildren();for(const e of experiments){const option=document.createElement('option');option.value=e.id;option.textContent=e.label;$('experiment').append(option)}$('experiment').value=experiments.some(e=>e.id==='rrfsv2x')?'rrfsv2x':experiments[0].id;$('experiment').disabled=false;$('load').disabled=false;await load()}catch(e){status(e.message,true);clearChart('The experiment list could not be loaded.')}}
+async function loadDataAvailability() {
+  try {
+    const response = await fetch('./index.html');
+    if (!response.ok) throw Error('Observation Impact page returned HTTP ' + response.status);
+    const page = new DOMParser().parseFromString(await response.text(), 'text/html');
+    const heading = [...page.querySelectorAll('section[aria-label="Display controls"] .note > strong')]
+      .find(element => element.textContent.trim() === 'Data availability (UTC)');
+    if (!heading) throw Error('Data availability note is missing');
+    $('dataAvailability').replaceWith(document.importNode(heading.parentElement, true));
+  } catch (error) {
+    console.warn('Could not load the data availability note:', error);
+  }
+}
+
 window.impactMonitor={previousDay,parseExperiments,parseReport,aggregate,cycles};init();
+loadDataAvailability();
 </script></body></html>
