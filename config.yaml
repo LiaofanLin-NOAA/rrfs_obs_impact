@@ -1,23 +1,22 @@
-
 # All cycle times are UTC. Relative paths are relative to the repository root.
-mode: retro  # realtime or retro
+mode: realtime  # realtime or retro
 
 realtime:
   lookback_hours: 24  # Exactly 24 hourly cycles, including the end cycle
   lag_hours: 3        # End cycle = current UTC hour minus this delay
 
 retro:
-  start_time: "2026111700"  # YYYYMMDDHH, inclusive
-  end_time:   "2026111723"  # YYYYMMDDHH, inclusive
+  start_time: "2026111800"  # YYYYMMDDHH, inclusive
+  end_time:   "2026111802"  # YYYYMMDDHH, inclusive
 
 experiment:
-  name: rrfsv2x
+  name: gaea_rrfsv2c
   # Paste the checkDA Assimilated observations string unchanged.
   data_types: "t181,t183,t187,q181,q183,q187,ps181,ps187,uv281,uv284,uv287,t120,q120,ps120,uv220,t133,q133,uv233,t180,t183,q180,q183,ps180,uv280,uv282,uv284"
-  # Verify this path for the selected experiment before submitting.
-  data_path: /scratch3/BMC/rtwrfruc/RRFSv2X/NCO_dirs/RRFSv2X/com/rrfs/v2.1.4
+  # Verify this path for the selected experiment before running.
+  data_path: /gpfs/f6/bil-pmp/world-shared/llin/rrfsv2c/RRFSv2c/com/rrfs/v2.1.4/
   # Directory containing jdiag_TYPE.nc for each cycle.
-  # Set this to the actual diagnostic subdirectory before submitting.
+  # Set this to the actual diagnostic subdirectory before running.
   # Available fields: data_path, ymd, year, month, day, hour, cycle.
   cycle_path_pattern: "{data_path}/rrfs.{ymd}/{hour}/jedivar/det/"
   domain: "True"
@@ -28,30 +27,13 @@ experiment:
 processing:
   # Processors must accept the named output options used by driver.sh.
   processors:
-    conv: scripts/obs_impact_conv.py
+    conv:    scripts/obs_impact_conv.py
     conv_uv: scripts/obs_impact_conv_uv.py
-    sate: scripts/obs_impact_sate.py
+    sate:    scripts/obs_impact_sate.py
   # Driver adds experiment.name to every output root automatically.
-  text_root: data
+  text_root:    data
   figures_root: figures
-  pickle_root: pickle
+  pickle_root:  pickle
   save_figures: true
   # Summary pickle files are always saved for obs_impact_summary.py.
   skip_missing_cycle_directory: true
-
-slurm:
-  account: wrfruc
-  qos: batch
-  partition: ""  # Empty uses the cluster default
-  tasks: 1
-  walltime: "02:00:00"
-  memory: 12G
-  log_dir: logs/rrfsv2x
-
-environment:
-  # Used inside the submitted job, matching di_submit_jobs.sh.
-  module_use: /scratch3/BMC/wrfruc/gge/Miniforge3/modulefiles
-  modules:
-    - Miniforge3/24.11.3-2
-    - pyDAmonitor/1.0.0
-  python: python3

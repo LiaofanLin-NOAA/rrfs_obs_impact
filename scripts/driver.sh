@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Combines cycle selection (di_driver.sh) and Slurm execution (di_submit_jobs.sh).
-# Usage: bash scripts/driver.sh [config.yaml] [--dry-run]
+# Process one UTC cycle at a time.
+# Usage: bash scripts/driver.sh [config.yaml] [--dry-run] [--publish]
 # YAML parsing requires PyYAML in DRIVER_PYTHON (or PYTHON_BIN / python3).
 set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -23,9 +23,10 @@ except ImportError:
 root = Path(sys.argv[1])
 sys.path.insert(0, str(root / 'scripts'))
 from obs_impact_functions import split_data_types
-parser = argparse.ArgumentParser(description='Submit one observation-impact job per UTC cycle.')
+parser = argparse.ArgumentParser(description='Process observation impact one UTC cycle at a time.')
 parser.add_argument('config', nargs='?', default=str(root / 'config.yaml'))
 parser.add_argument('--dry-run', action='store_true')
+parser.add_argument('--publish', action='store_true', help='Commit new cycle summaries and push main to origin')
 args = parser.parse_args(sys.argv[2:])
 
 def positive_int(value, name, minimum=1):
@@ -41,6 +42,30 @@ def timestamp(value):
 def path(value):
     p = Path(value).expanduser()
     return p if p.is_absolute() else root / p
+
+def git(*args, capture=False):
+    result = subprocess.run(
+        ['git', *args], cwd=root, check=True, text=True,
+        env={**os.environ, 'GIT_TERMINAL_PROMPT': '0'},
+        stdout=subprocess.PIPE if capture else None)
+    return result.stdout
+
+def publish_summaries(text_dir, name):
+    relative_dir = text_dir.relative_to(root)
+    tracked = set(git('ls-tree', '-r', '--name-only', '-z', 'HEAD', '--',
+                      str(relative_dir), capture=True).split('\0'))
+    new_files = sorted(
+        str(file.relative_to(root)) for file in text_dir.glob('*.txt')
+        if re.fullmatch(r'[0-9]{10}\.txt', file.name)
+        and file.is_file() and file.stat().st_size > 0
+        and str(file.relative_to(root)) not in tracked
+    )
+    if new_files:
+        git('add', '--', *new_files)
+        git('commit', '--only', '-m', f'Update observation impact summaries for {name}', '--', *new_files)
+    # A prior push may have failed after the summaries were committed.
+    git('push', 'origin', 'HEAD:refs/heads/main')
+
 
 try:
     with open(args.config) as f:
@@ -61,7 +86,7 @@ try:
         raise ValueError('mode must be realtime or retro')
     if start > end:
         raise ValueError('start_time must not be later than end_time')
-    exp, proc, slurm, env = (cfg[k] for k in ('experiment', 'processing', 'slurm', 'environment'))
+    exp, proc = cfg['experiment'], cfg['processing']
     name = str(exp['name'])
     if not re.fullmatch(r'[A-Za-z0-9_-]+', name):
         raise ValueError('experiment.name may contain only letters, digits, underscores and hyphens')
@@ -98,24 +123,24 @@ try:
             raise ValueError('Figure/pickle directories must be outside the text directory')
     if str(exp.get('domain', 'True')) != 'True':
         raise ValueError('Subdomain filtering is not supported by obs_impact_conv.py yet')
-    logs = path(slurm['log_dir']).resolve()
-    tasks = positive_int(slurm['tasks'], 'slurm.tasks')
-    if not isinstance(env.get('modules', []), list):
-        raise ValueError('environment.modules must be a list')
-    setup = ['set -euo pipefail', 'unset SLURM_MEM_PER_NODE SLURM_MEM_PER_CPU SLURM_MEM_PER_GPU']
-    if env.get('module_use'):
-        setup.append(shlex.join(['module', 'use', '-a', str(env['module_use'])]))
-    for module in env.get('modules', []):
-        setup.append(shlex.join(['module', 'load', str(module)]))
-
+    if args.publish:
+        if root / 'data' not in text_dir.parents:
+            raise ValueError('--publish requires the summary directory to be under repo/data')
+        if not args.dry_run and git('branch', '--show-current', capture=True).strip() != 'main':
+            raise ValueError('--publish requires the local main branch')
     print(f'Mode: {mode}; UTC cycles: {start:%Y%m%d%H} through {end:%Y%m%d%H}', flush=True)
     if not args.dry_run:
         text_dir.mkdir(parents=True, exist_ok=True)
-        logs.mkdir(parents=True, exist_ok=True)
-    submitted = skipped = 0
+    processed = skipped = failed = 0
     cycle = start
     while cycle <= end:
         stamp = cycle.strftime('%Y%m%d%H')
+        summary = text_dir / f'{stamp}.txt'
+        if summary.is_file() and summary.stat().st_size > 0:
+            print(f'SKIP {stamp}: summary already exists at {summary}', flush=True)
+            skipped += 1
+            cycle += timedelta(hours=1)
+            continue
         data = exp['cycle_path_pattern'].format(
             data_path=str(path(exp['data_path'])), cycle=stamp,
             ymd=stamp[:8], year=stamp[:4], month=stamp[4:6], day=stamp[6:8], hour=stamp[8:10])
@@ -125,41 +150,49 @@ try:
             skipped += 1
             cycle += timedelta(hours=1)
             continue
-        commands = list(setup)
+        if not args.dry_run and not any(Path(data).glob('jdiag_*.nc')):
+            print(f'SKIP {stamp}: no diagnostic files in {data}', flush=True)
+            skipped += 1
+            cycle += timedelta(hours=1)
+            continue
+        commands = []
         print(f"Cycle {stamp}: input={data}", flush=True)
         for group, script in scripts:
-            processor_cmd = [str(env['python']), str(script), stamp,
+            processor_cmd = [sys.executable, str(script), stamp,
                              '--data-types', ','.join(groups[group]),
                              '--input-dir', data, '--output-dir', str(text_dir),
                              '--figures-dir', str(figures_dir), '--pickle-dir', str(pickle_dir)]
             if proc.get('save_figures', False):
                 processor_cmd.append('--plots')
             processor_cmd.append('--pickle')  # Required summary intermediate
-            commands.append(shlex.join(processor_cmd))
-        commands.append(shlex.join([
-            str(env['python']), str(root / 'scripts' / 'obs_impact_summary.py'), stamp,
+            commands.append(processor_cmd)
+        commands.append([
+            sys.executable, str(root / 'scripts' / 'obs_impact_summary.py'), stamp,
             '--pickle-dir', str(pickle_dir), '--output-dir', str(text_dir),
-            '--groups', ','.join(group for group, script in scripts)]))
-        # Passing commands through a quoted bash argument preserves spaces and DOMAIN operators.
-        wrap = shlex.join(['bash', '--login', '-c', '\n'.join(commands)])
-        cmd = ['sbatch', '--parsable', '--job-name', f'di_{name}_{stamp}',
-               '--output', str(logs / f'di_{stamp}_%j.log'), '--chdir', str(work),
-               '--ntasks', str(tasks), '--time', str(slurm['walltime']),
-               '--mem', str(slurm['memory']), '--export=ALL']
-        for key, flag in [('account', '--account'), ('qos', '--qos'), ('partition', '--partition')]:
-            if slurm.get(key):
-                cmd.extend([flag, str(slurm[key])])
-        cmd.extend(['--wrap', wrap])
-        if args.dry_run:
-            print(shlex.join(cmd), flush=True)
+            '--groups', ','.join(group for group, _ in scripts)])
+        try:
+            for command in commands:
+                if args.dry_run:
+                    print(shlex.join(command), flush=True)
+                else:
+                    subprocess.run(command, cwd=work, check=True)
+        except subprocess.CalledProcessError as exc:
+            print(f'ERROR: cycle {stamp}: {Path(exc.cmd[1]).name} exited with status {exc.returncode}',
+                  file=sys.stderr, flush=True)
+            failed += 1
         else:
-            result = subprocess.run(cmd, check=True, text=True, capture_output=True)
-            print(f'SUBMITTED {stamp}: {result.stdout.strip()}', flush=True)
-        submitted += 1
+            if not args.dry_run:
+                print(f'PROCESSED {stamp}', flush=True)
+            processed += 1
         cycle += timedelta(hours=1)
-    print(f'{"Planned" if args.dry_run else "Submitted"}: {submitted}; skipped: {skipped}')
-except (KeyError, TypeError, ValueError, OSError, yaml.YAMLError, subprocess.CalledProcessError) as exc:
-    if isinstance(exc, subprocess.CalledProcessError):
-        print(exc.stderr or '', file=sys.stderr)
+    print(f'{"Planned" if args.dry_run else "Processed"}: {processed}; skipped: {skipped}; failed: {failed}',
+          flush=True)
+    if args.publish and not args.dry_run:
+        publish_summaries(text_dir, name)
+    if failed:
+        sys.exit(1)
+except subprocess.CalledProcessError as exc:
+    sys.exit(f'ERROR: Git {exc.cmd[1]} exited with status {exc.returncode}')
+except (KeyError, TypeError, ValueError, OSError, yaml.YAMLError) as exc:
     sys.exit(f'ERROR: {exc}')
 PY
