@@ -2,7 +2,7 @@
 mode: realtime  # realtime or retro
 
 realtime:
-  lookback_hours: 24  # Exactly 24 hourly cycles, including the end cycle
+  lookback_hours: 42  # Exactly 42 hourly cycles, including the end cycle
   lag_hours: 3        # End cycle = current UTC hour minus this delay
 
 retro:
