@@ -1,115 +1,267 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light">
-<title>RRFS | OMB/OMA Time Series</title>
-<style>
-:root{--bg:#f5f7fa;--panel:#fff;--ink:#182b43;--muted:#637489;--line:#dce4ed;--blue:#145f9b}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}.header{background:#102f51;border-bottom:4px solid #4ca9d5;color:#fff}.inner,main,footer{max-width:1400px;margin:auto;padding:22px}.eyebrow{color:#8fd1ee;font-size:15px;font-weight:750;letter-spacing:.12em;text-transform:uppercase}h1{font-size:clamp(23px,3.1vw,31px);margin:5px 0 7px;letter-spacing:-.035em}.subtitle{color:#cadce9;font-size:15px}.nav{display:flex;gap:8px;margin-top:17px}.nav a{color:#dff4ff;border:1px solid #76b9dc;border-radius:7px;padding:7px 12px;text-decoration:none;font-weight:700}.nav a.active{background:white;color:var(--blue);border-color:white}.panel{background:white;border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:16px}.controls{display:flex;align-items:end;gap:14px;flex-wrap:wrap}label{display:block;font-size:16px;font-weight:700;color:var(--muted);margin-bottom:5px}input,select,button{font:inherit;padding:9px 11px;border:1px solid #bbcada;border-radius:7px;background:white;color:var(--ink)}#experiment{max-width:100%;width:270px}button{cursor:pointer;background:var(--blue);border-color:var(--blue);color:white;font-weight:650}button.secondary{background:white;color:var(--blue)}button:disabled{opacity:.5;cursor:default}input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid #8fd1ee;outline-offset:2px}.status,.note{font-size:16px;color:var(--muted)}.status{margin:14px 0 6px}.status.error{color:#ad2935}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}.stat{background:white;border:1px solid var(--line);border-radius:9px;padding:13px 17px}.stat label{font-size:15px;text-transform:uppercase;letter-spacing:.055em}.value{font-size:21px;font-weight:730;font-variant-numeric:tabular-nums}.value.small{font-size:16px;padding-top:5px}h2{margin:0 0 6px;font-size:20px}.chart-scroll{overflow-x:auto}#plot{width:100%;display:block;min-width:1000px}.empty{padding:65px 20px;text-align:center;color:var(--muted)}.table-scroll{overflow:auto}table{width:100%;border-collapse:collapse;font-size:16px;white-space:nowrap}th,td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}th:first-child,td:first-child{text-align:left}th{background:#f2f6fb}summary{cursor:pointer;font-weight:650}details{margin-top:12px}a{color:var(--blue)}footer{font-size:16px;color:var(--muted)}@media(max-width:650px){.inner,main,footer{padding:14px}.stats{grid-template-columns:1fr 1fr}.panel{padding:13px}.controls>div:first-child{width:100%}#experiment{width:100%}}
-</style></head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>RRFSv2X | 30-Day Ensemble Time Series</title>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <style>
+    :root { --bg:#f5f7fa; --panel:#fff; --ink:#182b43; --muted:#637489; --line:#dce4ed; --blue:#145f9b; --red:#ad2935; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; }
+    .header { background:#102f51; border-bottom:4px solid #4ca9d5; color:#fff; }
+    .wrap { max-width:1250px; margin:auto; padding:22px; }
+    .header-inner { max-width:1250px; margin:0 auto; padding:24px 22px 25px; }
+    h1 { font-size:clamp(23px,3.1vw,31px); margin:5px 0 7px; letter-spacing:-.035em; line-height:1.2; }
+    .eyebrow { color:#8fd1ee; font-size:11px; font-weight:750; letter-spacing:.12em; text-transform:uppercase; }
+    .subtitle { color:#cadce9; font-size:13px; max-width:1100px; line-height:1.65; }
+    .subtitle p { margin:9px 0 0; }
+    .subtitle a { color:#9bdcff; text-decoration:underline; text-underline-offset:2px; }
+    .subtitle a:hover,.subtitle a:focus-visible { color:#fff; }
+    main.wrap { padding-top:23px; }
+    .panel { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:18px; margin-bottom:15px; }
+    .controls { display:flex; gap:16px; align-items:end; flex-wrap:wrap; }
+    label { display:block; color:var(--muted); font-size:12px; font-weight:700; margin-bottom:5px; }
+    select,input[type="date"],button { padding:8px 12px; font:inherit; border:1px solid #bbcada; border-radius:7px; background:white; color:var(--ink); }
+    button { cursor:pointer; background:#145f9b; color:white; border-color:#145f9b; }
+    button:disabled { opacity:.55; cursor:default; }
+    .status { font-size:12px; color:var(--muted); margin-top:11px; }
+    .status.error { color:var(--red); }
+    .chart { width:100%; height:360px; }
+    .top-nav { display:flex; gap:8px; flex-wrap:wrap; margin-top:17px; }
+    .top-nav a { display:inline-block; padding:7px 12px; border:1px solid #76b9dc; border-radius:7px; color:#dff4ff; text-decoration:none; font-weight:700; background:rgba(255,255,255,.06); }
+    .top-nav a:hover, .top-nav a:focus-visible { background:rgba(255,255,255,.14); color:#fff; }
+    .top-nav a.active { background:#fff; color:#145f9b; border-color:#fff; }
+    h2 { font-size:17px; margin:0 0 7px; }
+    .note { color:var(--muted); font-size:12px; }
+    footer { color:var(--muted); padding-bottom:22px; font-size:12px; }
+    @media (max-width:600px) { .wrap { padding:14px; } .header-inner { padding-left:14px; padding-right:14px; } .panel { padding:12px; } .chart { height:320px; } }
+  </style>
+</head>
 <body>
-<header class="header"><div class="inner"><div class="eyebrow">RRFS · Data assimilation diagnostics</div><h1>OMB/OMA Time Series</h1><div class="subtitle">Conventional, wind and satellite observations · Hourly cycles in UTC</div><nav class="nav" aria-label="Related pages"><a href="./index.html">Observation Impact</a><a class="active" href="./time_series.html" aria-current="page">OMB/OMA Time Series</a></nav></div></header>
-<main>
-<section class="panel" aria-label="Display controls"><form id="controls"><div class="controls">
-<div><label for="experiment">Experiment</label><select id="experiment" required disabled><option>Loading experiments…</option></select></div>
-<div><label for="startDate">Start date (UTC)</label><input id="startDate" type="date" required></div><div><label for="startHour">Hour</label><select id="startHour" aria-label="Start hour UTC"></select></div>
-<div><label for="endDate">End date (UTC)</label><input id="endDate" type="date" required></div><div><label for="endHour">Hour</label><select id="endHour" aria-label="End hour UTC"></select></div>
-<button id="load" disabled type="submit">Display</button><button id="yesterday" class="secondary" type="button">Previous UTC day</button>
-</div></form><div id="status" class="status" role="status" aria-live="polite">Loading experiments…</div><div class="note">Start and end hours are inclusive · Default: yesterday 00–23 UTC · Maximum window: 28 days</div></section>
-<section class="stats" aria-label="Data coverage"><div class="stat"><label>Available / requested cycles</label><div class="value" id="coverage">—</div></div><div class="stat"><label>Observation types</label><div class="value" id="types">—</div></div><div class="stat"><label>Selected period (UTC)</label><div class="value small" id="period">—</div></div><div class="stat"><label>Experiment</label><div class="value small" id="selected">—</div></div></section>
-<section class="panel"><h2 id="chartTitle">Count and departure statistics</h2><div style="margin:14px 0"><label for="dataType">Data type</label><select id="dataType" style="min-width:260px" disabled></select> <button id="showAll" class="secondary" type="button" disabled>Display all data types</button></div><p class="note">Choose any data type to display its count and OMB/OMA min, mean, and max. Departures use the same accepted subset as impact, in native diagnostic units. Wind pools U and V components; satellite statistics pool accepted channels. Older three-column reports show count only.</p><div class="controls" style="margin:12px 0"><button id="savePNG" class="secondary" type="button" disabled>Save PNG</button><button id="saveSVG" class="secondary" type="button" disabled>Save SVG</button></div><p class="note" id="windowNote">Choose a window and display the available cycle reports.</p><div class="chart-scroll" id="chart"><div class="empty">Loading…</div></div><p class="note" id="averagingNote">Values are shown for each individual UTC cycle without time averaging. Missing cycles and unavailable statistics appear as gaps; lines do not bridge them. Missing-type zero counts can also reflect absent diagnostics.</p><details id="tableDetails" hidden><summary>View numerical values</summary><div class="table-scroll"><table><thead><tr><th>UTC cycle</th><th>Count</th><th>OMB min</th><th>OMB mean</th><th>OMB max</th><th>OMA min</th><th>OMA mean</th><th>OMA max</th></tr></thead><tbody id="table"></tbody></table></div></details></section>
+  <header class="header"><div class="header-inner">
+  <div class="eyebrow">RRFSv2X · Ensemble monitoring</div>
+  <h1>Ensemble Variable Monitor (Near Real Time)</h1>
+  <nav class="top-nav" aria-label="Monitor pages">
+    <a href="./index.html">Current Monitor</a>
+    <a class="active" href="./time_series.html" aria-current="page">30-Day Time Series</a>
+    <a href="./notes.html">Notes</a>
 
-<details class="panel"><summary>Missing or unreadable cycles</summary><div id="missing" class="note">—</div></details>
-</main><footer>RRFS observation impact diagnostics · Data read directly from committed hourly text files · All times UTC</footer>
+  </nav>
+</div></header>
+  <main class="wrap">
+    <section class="panel">
+      <div class="controls">
+        <div>
+          <label for="endDate">End date (UTC)</label>
+          <input id="endDate" type="date">
+        </div>
+        <button id="reload" type="button">Generate 30-Day Plots</button>
+      </div>
+      <div class="status" id="status" aria-live="polite">Loading reports…</div>
+      <div class="note">UTC hourly cycles · All four variables shown below · 30 days, including the selected end date · Missing reports appear as gaps (lines never bridge missing hours). GitHub Pages reads committed files; there is no server-side plotting job.</div>
+    </section>
+    <div id="allPlots">
+      <section class="panel"><h2>Loading time series…</h2></section>
+    </div>
+  </main>
+  <footer class="wrap">The input text files are created by your existing RRFS monitoring workflow. Plot updates require only that the ordinary reports have been committed to GitHub.</footer>
 <script>
 'use strict';
-const $=id=>document.getElementById(id);
-const DEFAULT_ROOT='https://raw.githubusercontent.com/LiaofanLin-NOAA/rrfs_obs_impact/main/data/';
-const HOUR=3600000;let experiments=[],activeController=null,generation=0;
-function previousDay(now=new Date()){const d=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate())-24*HOUR);return d.toISOString().slice(0,10)}
-function resetDates(){const d=previousDay();$('startDate').value=d;$('endDate').value=d;$('startHour').value='00';$('endHour').value='23'}
-function stamp(ms){return new Date(ms).toISOString().slice(0,13).replaceAll('-','').replace('T','')}
-function cycles(){const a=$('startDate').value,b=$('endDate').value;const start=Date.parse(a+'T'+$('startHour').value+':00:00Z'),end=Date.parse(b+'T'+$('endHour').value+':00:00Z');if(!Number.isFinite(start)||!Number.isFinite(end)||start>end)throw Error('Choose valid start and end dates, with start no later than end.');const n=(end-start)/HOUR+1;if(n>28*24)throw Error('Select no more than 28 days (672 hourly cycles).');return Array.from({length:n},(_,i)=>stamp(start+i*HOUR))}
-function parseExperiments(text){const list=[];for(const raw of text.split(/\r?\n/)){const line=raw.trim();if(!line||line.startsWith('#'))continue;const parts=line.split('|').map(s=>s.trim());if(parts.length<2||parts.length>3||!/^[A-Za-z0-9_-]+$/.test(parts[0])||!parts[1])throw Error('Invalid line in experiments.txt: '+line);if(list.some(x=>x.id===parts[0]))throw Error('Duplicate experiment: '+parts[0]);let base=parts[2]||DEFAULT_ROOT+parts[0]+'/';const url=new URL(base,location.href);if(!['https:','http:'].includes(url.protocol))throw Error('Experiment URLs must use HTTP or HTTPS.');list.push({id:parts[0],label:parts[1],base:url.href.replace(/\/?$/,'/')})}if(!list.length)throw Error('No experiments found in experiments.txt.');return list}
-function parseReport(text){const rows=new Map();let lineno=0;for(const raw of text.split(/\r?\n/)){lineno++;const line=raw.trim();if(!line||line.startsWith('#'))continue;const p=line.split(/\s+/);if(![3,9,11].includes(p.length))throw Error('Expected 3, 9, or legacy 11 columns on line '+lineno);const impact=Number(p[1]),count=Number(p[2]);if(!Number.isFinite(impact)||!Number.isSafeInteger(count)||count<0)throw Error('Invalid impact/count on line '+lineno);if(rows.has(p[0]))throw Error('Duplicate type '+p[0]);const fields=['omb_min','omb_mean','omb_max','oma_min','oma_mean','oma_max'];const offsets=p.length===11?[3,4,6,7,8,10]:[3,4,5,6,7,8];const stats={};fields.forEach((f,i)=>{const raw=p[offsets[i]];if(raw===undefined||raw.toLowerCase()==='nan'){stats[f]=null}else{const n=Number(raw);if(!Number.isFinite(n))throw Error('Invalid '+f+' on line '+lineno);stats[f]=n}});rows.set(p[0],{impact,count,...stats})}if(!rows.size)throw Error('No observation rows');return rows}
-function aggregate(reports){const sums=new Map();for(const report of reports)for(const [type,row] of report){if(!sums.has(type))sums.set(type,{type,impact:0,count:0,present:0});const s=sums.get(type);s.impact+=row.impact;s.count+=row.count;s.present++}return [...sums.values()].sort((a,b)=>a.type.localeCompare(b.type)).map(s=>({...s,impactCycle:s.impact/reports.length,countCycle:s.count/reports.length,perObs:s.count?s.impact/s.count:null}))}
-function status(text,error=false){$('status').textContent=text;$('status').className='status'+(error?' error':'')}
-function clearChart(message){$('dataType').disabled=true;$('showAll').disabled=true;$('savePNG').disabled=true;$('saveSVG').disabled=true;$('chart').replaceChildren();const n=document.createElement('div');n.className='empty';n.textContent=message;$('chart').append(n);$('tableDetails').hidden=true;$('table').replaceChildren()}
-function format(n){return n===null?'N/A':n.toLocaleString('en-US',{maximumSignificantDigits:6})}
-function tick(n){if(n===0)return '0';const a=Math.abs(n);if(a>=1e6)return Number((n/1e6).toPrecision(3)).toString()+'M';if(a>=1000)return Number((n/1000).toPrecision(3)).toString()+'k';return Number(n.toPrecision(3)).toString()}
-const NS='http://www.w3.org/2000/svg';function svgEl(tag,attrs={},text){const n=document.createElementNS(NS,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);if(text!==undefined)n.textContent=text;return n}
-let seriesContext=null,allTypes=false;
-function render(rows,reports,wanted){
- seriesContext={rows,reports,wanted};const selector=$('dataType'),previous=selector.value;selector.replaceChildren();
- for(const r of rows){const option=document.createElement('option');option.value=r.type;option.textContent=r.type;selector.append(option)}
- selector.value=rows.some(r=>r.type===previous)?previous:rows[0].type;selector.disabled=false;
- $('showAll').disabled=false;selector.onchange=()=>{allTypes=false;$('showAll').textContent='Display all data types';drawSeries()};$('showAll').onclick=()=>{allTypes=!allTypes;$('showAll').textContent=allTypes?'Display selected type':'Display all data types';if(allTypes)drawAllTypes();else drawSeries()};if(allTypes)drawAllTypes();else drawSeries();
+const OWNER = 'LiaofanLin-NOAA';
+const REPO = 'rrfs_monitor';
+const BRANCH = 'main';
+const HOURS = 30 * 24;
+const GITHUB_TREE = `https://api.github.com/repos/${OWNER}/${REPO}/git/trees/${BRANCH}?recursive=1`;
+const RAW_ROOT = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/data/`;
+const VARS = {
+  temperature_2m: { section:'temperature_2m', unit:'K', name:'2-m temperature' },
+  specific_humidity_2m: { section:'specific_humidity_2m', unit:'kg/kg', name:'2-m specific humidity' },
+  soil_moisture_layer1: { section:'soil_moisture_layer1', unit:'m³/m³', name:'Soil moisture (layer 1)' },
+  soil_temperature_layer1: { section:'soil_temperature_layer1', unit:'K', name:'Soil temperature (layer 1)' }
+};
+const LABEL_TO_FIELD = {
+  'Spread percentile 1':'p01', 'Spread percentile 10':'p10',
+  'Spread spatial mean':'mean', 'Spread percentile 90':'p90',
+  'Spread percentile 99':'p99', 'Minimum':'min', 'Maximum':'max'
+};
+const COLORS = {p01:'#8fabc3', p10:'#4ba3c3', mean:'#125a98', p90:'#d68d38', p99:'#b44755', min:'#b44755', max:'#125a98'};
+const $ = id => document.getElementById(id);
+let rows = [];
+
+function cycleStamp(date) {
+  return date.getUTCFullYear().toString() +
+    String(date.getUTCMonth()+1).padStart(2,'0') +
+    String(date.getUTCDate()).padStart(2,'0') +
+    String(date.getUTCHours()).padStart(2,'0');
 }
-function drawSeries(){
- if(!seriesContext)return;const {reports,wanted}=seriesContext,type=$('dataType').value;
- const byCycle=new Map(reports.map(r=>[r.cycle,r]));
- const points=wanted.map(cycle=>({cycle,row:byCycle.get(cycle)?.get(type)||null}));
- const fields=['omb_min','omb_mean','omb_max','oma_min','oma_mean','oma_max'];
- const W=1190,H=760,L=95,R=30,svg=svgEl('svg',{id:'plot',viewBox:`0 0 ${W} ${H}`,role:'img','aria-label':`${type}: count and OMB/OMA statistics over UTC cycles`});
- svg.append(svgEl('title',{},type+' · Count and OMB/OMA statistics'));
- const x=i=>L+(W-L-R)*(wanted.length===1?.5:i/(wanted.length-1));
- const time=c=>`${c.slice(4,6)}-${c.slice(6,8)} ${c.slice(8)}Z`;
- function panel(yTop,yBottom,keys,title){
- const values=points.flatMap(p=>keys.map(k=>p.row?.[k]).filter(v=>v!==null&&v!==undefined));
- let lo=Math.min(...values),hi=Math.max(...values);if(!values.length){lo=0;hi=1}else if(lo===hi){const pad=Math.abs(lo)*.1||1;lo-=pad;hi+=pad}else{const pad=(hi-lo)*.08;lo-=pad;hi+=pad}
- const y=v=>yBottom-(v-lo)/(hi-lo)*(yBottom-yTop);
- svg.append(svgEl('text',{x:L,y:yTop-20,'font-size':19,'font-weight':700,fill:'#182b43'},title));
- for(let j=0;j<=4;j++){const v=lo+(hi-lo)*j/4,yy=y(v);svg.append(svgEl('line',{x1:L,x2:W-R,y1:yy,y2:yy,stroke:'#dce4ed'}));svg.append(svgEl('text',{x:L-10,y:yy+5,'text-anchor':'end','font-size':14,fill:'#637489'},tick(v)))}
- const ticks=[...new Set(Array.from({length:Math.min(6,wanted.length)},(_,j)=>Math.round(j*(wanted.length-1)/Math.max(1,Math.min(6,wanted.length)-1))))];
- for(const i of ticks){svg.append(svgEl('text',{x:x(i),y:yBottom+25,'text-anchor':'middle','font-size':13,fill:'#637489'},time(wanted[i])))}
- if(!values.length)svg.append(svgEl('text',{x:(L+W-R)/2,y:(yTop+yBottom)/2,'text-anchor':'middle','font-size':16,fill:'#637489'},'No departure statistics in these reports. Rerun processing to populate the new columns.'));
- for(const key of keys){const stat=key.split('_')[1],color=key==='count'?'#145f9b':key.startsWith('omb')?'#145f9b':'#bc591c',dash={min:'3 4',mean:'',max:'12 3 3 3'}[stat]||'';let d='',open=false;
- points.forEach((p,i)=>{const v=p.row?.[key];if(v===null||v===undefined){open=false;return}d+=(open?' L ':' M ')+x(i)+' '+y(v);open=true;const dot=svgEl('circle',{cx:x(i),cy:y(v),r:keys.length===1?3:2,fill:color});dot.append(svgEl('title',{},`${p.cycle} ${type} ${key}: ${format(v)}`));svg.append(dot)});
- svg.append(svgEl('path',{d,fill:'none',stroke:color,'stroke-width':stat==='mean'?2.6:1.7,'stroke-dasharray':dash}));
- }
- }
- panel(80,245,['count'],type+' · Accepted observation count');
- // A separate legend makes all eight statistics identifiable without hover.
- fields.forEach((key,i)=>{const col=i%3,row=Math.floor(i/3),xx=L+col*335,yy=320+row*28,stat=key.split('_')[1];svg.append(svgEl('line',{x1:xx,x2:xx+34,y1:yy,y2:yy,stroke:key.startsWith('omb')?'#145f9b':'#bc591c','stroke-width':2,'stroke-dasharray':{min:'3 4',mean:'',max:'12 3 3 3'}[stat]}));svg.append(svgEl('text',{x:xx+43,y:yy+5,'font-size':15,fill:'#182b43'},key.replace('_',' ').toUpperCase()))});
- panel(410,690,fields,'OMB / OMA departure statistics · Native diagnostic units');
- svg.append(svgEl('text',{x:W/2,y:H-12,'text-anchor':'middle','font-size':15,fill:'#637489'},'UTC cycle'));
- $('chart').replaceChildren(svg);svg.dataset.exportName=`${$('experiment').value}_${type}_${wanted[0]}_${wanted.at(-1)}_omb_oma`;
- $('savePNG').disabled=false;$('saveSVG').disabled=false;$('table').replaceChildren();
- for(const p of points){const tr=document.createElement('tr');for(const v of [p.cycle,p.row?.count??null,...fields.map(f=>p.row?.[f]??null)]){const td=document.createElement('td');td.textContent=typeof v==='string'?v:v===null?'N/A':(tr.children.length>=2?v.toFixed(6):format(v));tr.append(td)}$('table').append(tr)}$('tableDetails').hidden=false;
+function cycleDate(stamp) {
+  return `${stamp.slice(0,4)}-${stamp.slice(4,6)}-${stamp.slice(6,8)}T${stamp.slice(8,10)}:00:00Z`;
 }
-function drawAllTypes(){
- if(!seriesContext)return;const selected=$('dataType').value,cards=[];
- for(const {type} of seriesContext.rows){
-  $('dataType').value=type;drawSeries();const svg=$('chart').firstElementChild;
-  svg.id='series-'+type;svg.style.width='100%';svg.style.minWidth='1000px';
-  const card=document.createElement('section');card.className='panel';const heading=document.createElement('h3');heading.textContent=type;card.append(heading);
-  const controls=document.createElement('div');controls.className='controls';
-  for(const [label,format] of [['Save PNG','png'],['Save SVG','svg']]){const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent=label;button.onclick=()=>saveFigure(format,svg);controls.append(button)}
-  card.append(controls);const scroll=document.createElement('div');scroll.className='chart-scroll';scroll.append(svg);card.append(scroll);cards.push(card);
- }
- $('dataType').value=selected;$('chart').replaceChildren(...cards);$('tableDetails').hidden=true;$('savePNG').disabled=true;$('saveSVG').disabled=true;
+function utcDateText(date) {
+  return date.getUTCFullYear() + '-' +
+    String(date.getUTCMonth()+1).padStart(2,'0') + '-' +
+    String(date.getUTCDate()).padStart(2,'0');
 }
-async function load(){let wanted,exp;try{wanted=cycles();exp=experiments.find(e=>e.id===$('experiment').value);if(!exp)throw Error('Select an experiment.')}catch(e){status(e.message,true);return}if(activeController)activeController.abort();const controller=new AbortController();activeController=controller;const current=++generation;$('load').disabled=true;clearChart('Loading hourly reports…');$('coverage').textContent='—';$('types').textContent='—';$('selected').textContent=exp.label;$('period').textContent=`${wanted[0]} – ${wanted.at(-1)}`;const valid=[],missing=[];let next=0,done=0;status(`Loading 0/${wanted.length} cycles…`);await Promise.all(Array.from({length:Math.min(8,wanted.length)},async()=>{while(next<wanted.length&&!controller.signal.aborted){const cycle=wanted[next++];try{const response=await fetch(exp.base+cycle+'.txt',{cache:'no-store',signal:controller.signal});if(!response.ok){missing.push(`${cycle}: ${response.status===404?'missing file':'HTTP '+response.status}`)}else{try{const report=parseReport(await response.text());report.cycle=cycle;valid.push(report)}catch(e){missing.push(`${cycle}: invalid report (${e.message})`)}}}catch(e){if(e.name==='AbortError')return;missing.push(`${cycle}: network request failed`)}done++;if(current===generation)status(`Loading ${done}/${wanted.length} cycles…`)}}));if(current!==generation)return;$('load').disabled=false;$('coverage').textContent=`${valid.length} / ${wanted.length}`;$('missing').textContent=missing.length?missing.sort().join(' · '):'None.';$('windowNote').textContent=`${exp.label} · ${$('startDate').value} ${$('startHour').value} UTC to ${$('endDate').value} ${$('endHour').value} UTC · ${valid.length} available cycle reports; values shown separately by cycle.`;if(!valid.length){clearChart('No valid cycle reports found for this experiment and window. Select another period.');$('types').textContent='0';status('No data available. Check the selected period or the cycle details below.',true);return}const rows=aggregate(valid);render(rows,valid,wanted);$('types').textContent=String(rows.length);status(`Loaded ${valid.length} of ${wanted.length} cycles; ${missing.length} missing or unreadable.`,missing.length>0)}
-function figureSVG(target){
- const original=target||document.getElementById('plot');if(!original)throw Error('Display a figure first.');
- const copy=original.cloneNode(true),box=original.viewBox.baseVal;
- copy.setAttribute('xmlns',NS);copy.setAttribute('width',box.width);copy.setAttribute('height',box.height);
- copy.setAttribute('font-family','Arial, Helvetica, sans-serif');copy.removeAttribute('id');
- const background=svgEl('rect',{x:0,y:0,width:box.width,height:box.height,fill:'white'});
- copy.insertBefore(background,copy.firstChild);
- return {text:new XMLSerializer().serializeToString(copy),width:box.width,height:box.height,name:original.dataset.exportName||'rrfs_observation_impact'};
+function wantedCycles() {
+  // The selected end date is inclusive, through 23 UTC.
+  // Exactly 720 hourly slots preserve gaps even if reports are absent.
+  const selected = $('endDate').value;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(selected)) throw new Error('Select a valid UTC end date.');
+  const end = Date.parse(selected + 'T23:00:00Z');
+  if (!Number.isFinite(end)) throw new Error('Invalid end date.');
+  return Array.from({length:HOURS},(_,i) => cycleStamp(new Date(end-(HOURS-1-i)*3600000)));
 }
-function downloadFigure(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000)}
-async function saveFigure(format,target){
- try{const figure=figureSVG(target),blob=new Blob([figure.text],{type:'image/svg+xml;charset=utf-8'});
- if(format==='svg'){downloadFigure(blob,figure.name+'.svg');return}
- $('savePNG').disabled=true;const url=URL.createObjectURL(blob);
- try{const img=new Image();await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(Error('Could not render PNG. Try Save SVG.'));img.src=url});
- const canvas=document.createElement('canvas');canvas.width=figure.width*2;canvas.height=figure.height*2;
- const context=canvas.getContext('2d');if(!context)throw Error('PNG export is unavailable. Try Save SVG.');context.drawImage(img,0,0,canvas.width,canvas.height);
- const png=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));if(!png)throw Error('PNG export failed. Try Save SVG.');downloadFigure(png,figure.name+'.png');
- }finally{URL.revokeObjectURL(url);$('savePNG').disabled=!document.getElementById('plot')}
- }catch(e){status(e.message,true)}
+
+function parseReport(text, expectedCycle) {
+  // This matches the text written by monitor_functions.py, not a tabular CSV.
+  const match = text.match(/^Cycle:\s*(\d{10})\s*$/m);
+  if (!match || match[1] !== expectedCycle) return null;
+  const member = text.match(/^Members:\s*(\d+)\s*$/m);
+  const files = text.match(/^Files processed:\s*(\d+)\s*$/m);
+  if (!member || !files || Number(member[1]) !== Number(files[1])) return null;
+  const result = {cycle:expectedCycle, variables:{}};
+  let current = null;
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    // Variable sections appear as unindented lines immediately before "Variable: ...".
+    if (Object.hasOwn(VARS,line)) {
+      current = line;
+      result.variables[current] = {};
+      continue;
+    }
+    if (!current) continue;
+    const pos = line.indexOf(':');
+    if (pos < 0) continue;
+    const label = line.slice(0,pos).trim();
+    const value = line.slice(pos+1).trim();
+    const field = LABEL_TO_FIELD[label];
+    if (field && value !== '') {
+      const n = Number(value);
+      if (Number.isFinite(n)) result.variables[current][field] = n;
+    }
+  }
+  const required = Object.values(LABEL_TO_FIELD);
+  if (!Object.keys(VARS).every(v => required.every(f => Number.isFinite(result.variables[v]?.[f])))) return null;
+  return result;
 }
-async function init(){ $('savePNG').addEventListener('click',()=>saveFigure('png'));$('saveSVG').addEventListener('click',()=>saveFigure('svg'));for(const id of ['startHour','endHour'])for(let h=0;h<24;h++){const opt=document.createElement('option');opt.value=String(h).padStart(2,'0');opt.textContent=opt.value;$(id).append(opt)}resetDates();$('controls').addEventListener('submit',e=>{e.preventDefault();load()});$('yesterday').addEventListener('click',()=>{resetDates();if(experiments.length)load()});$('experiment').addEventListener('change',load);try{const r=await fetch('./experiments.txt',{cache:'no-store'});if(!r.ok)throw Error('Could not read experiments.txt (HTTP '+r.status+').');experiments=parseExperiments(await r.text());$('experiment').replaceChildren();for(const e of experiments){const option=document.createElement('option');option.value=e.id;option.textContent=e.label;$('experiment').append(option)}$('experiment').value=experiments.some(e=>e.id==='rrfsv2x')?'rrfsv2x':experiments[0].id;$('experiment').disabled=false;$('load').disabled=false;await load()}catch(e){status(e.message,true);clearChart('The experiment list could not be loaded.')}}
-window.impactMonitor={previousDay,parseExperiments,parseReport,aggregate,cycles};init();
-</script></body></html>
+async function availableFilenames(cycles) {
+  const response = await fetch(GITHUB_TREE, {cache:'no-store'});
+  if (!response.ok) throw new Error(`GitHub file listing: HTTP ${response.status}. Try refreshing later.`);
+  const tree = await response.json();
+  if (!Array.isArray(tree.tree) || tree.truncated) throw new Error('GitHub could not provide a complete file listing.');
+  const present = new Set(tree.tree.filter(f => f.type==='blob' && /^data\/\d{10}\.txt$/.test(f.path)).map(f => f.path.slice(5,-4)));
+  return cycles.filter(c => present.has(c));
+}
+async function fetchOne(cycle) {
+  const response = await fetch(RAW_ROOT + cycle + '.txt?v=' + Date.now(), {cache:'no-store'});
+  if (!response.ok) return null;
+  return parseReport(await response.text(), cycle);
+}
+async function fetchConcurrent(cycles, concurrency=12) {
+  const output = new Array(cycles.length).fill(null);
+  let next=0, done=0;
+  await Promise.all(Array.from({length:Math.min(concurrency,cycles.length)},async()=>{
+    while (next<cycles.length) {
+      const index=next++;
+      try { output[index] = await fetchOne(cycles[index]); } catch { /* keep a gap */ }
+      done++;
+      if (done%20===0 || done===cycles.length) $('status').textContent=`Loading ${done}/${cycles.length} available text reports…`;
+    }
+  }));
+  return output.filter(Boolean);
+}
+function makeChartPanel(title, description, id) {
+  const panel = document.createElement('section');
+  panel.className = 'panel';
+  const h = document.createElement('h2');
+  h.textContent = title;
+  const note = document.createElement('div');
+  note.className = 'note';
+  note.textContent = description;
+  const chart = document.createElement('div');
+  chart.id = id;
+  chart.className = 'chart';
+  panel.append(h, note, chart);
+  return panel;
+}
+function draw() {
+  if (typeof Plotly === 'undefined') {
+    $('status').textContent = 'Plotly could not load. Check your network connection.';
+    $('status').classList.add('error');
+    return;
+  }
+  const allCycles = wantedCycles();
+  const byCycle = new Map(rows.map(r => [r.cycle, r]));
+  const x = allCycles.map(cycleDate);
+  const plots = $('allPlots');
+  // Clear existing charts before rebuilding all four variables.
+  for (const el of plots.querySelectorAll('.chart')) Plotly.purge(el);
+  plots.replaceChildren();
+
+  for (const [variable, info] of Object.entries(VARS)) {
+    const spreadId = `spread_${variable}`;
+    const extremesId = `extremes_${variable}`;
+    plots.append(
+      makeChartPanel(`${info.name} — ensemble spread`,
+        '1st, 10th, spatial mean, 90th, and 99th percentiles over land grid cells.', spreadId),
+      makeChartPanel(`${info.name} — ensemble extreme values`,
+        'Minimum and maximum across all ensemble members and land grid cells.', extremesId)
+    );
+
+    const series = (field, label) => ({
+      x,
+      // One entry per hourly cycle, including explicit null for missing reports.
+      // Plotly will leave the missing hours blank, never joining across them.
+      y: allCycles.map(c => byCycle.get(c)?.variables[variable]?.[field] ?? null),
+      type: 'scatter', mode: 'lines+markers', name: label, connectgaps: false,
+      line: {color: COLORS[field], width: field === 'mean' ? 3 : 1.8},
+      marker: {size: 4},
+      hovertemplate: '%{x|%Y-%m-%d %H:%M UTC}<br>%{y:.6g} ' + info.unit + '<extra>' + label + '</extra>'
+    });
+    const theme = {
+      font: {family:'Arial, sans-serif', color:'#182b43', size:12},
+      margin: {l:75,r:20,t:20,b:65}, paper_bgcolor:'#fff', plot_bgcolor:'#fff',
+      legend: {orientation:'h',y:-0.30}, hovermode:'x unified',
+      xaxis: {title:'Cycle initialization (UTC)',type:'date',range:[x[0],x[x.length-1]],showgrid:true,gridcolor:'#e7edf3'},
+      yaxis: {title:info.unit,showgrid:true,gridcolor:'#e7edf3'},
+      showlegend:true
+    };
+    Plotly.newPlot(spreadId, [
+      series('p01','1st percentile'),series('p10','10th percentile'),
+      series('mean','Spatial mean'),series('p90','90th percentile'),series('p99','99th percentile')
+    ], theme, {responsive:true,displaylogo:false});
+    const shapes = [];
+    if (variable === 'soil_temperature_layer1') {
+      for (const threshold of [253,323]) {
+        shapes.push({type:'line',xref:'paper',x0:0,x1:1,yref:'y',y0:threshold,y1:threshold,
+          line:{color:'#c43b3b',dash:'dash',width:1}});
+      }
+    }
+    Plotly.newPlot(extremesId, [series('min','Minimum'),series('max','Maximum')],
+      {...theme, shapes}, {responsive:true,displaylogo:false});
+  }
+}
+async function load() {
+  $('reload').disabled=true;
+  $('status').classList.remove('error');
+  $('status').textContent='Checking the selected 30-day period on GitHub…';
+  try {
+    const cycles=wantedCycles();
+    const filenames=await availableFilenames(cycles);
+    rows=await fetchConcurrent(filenames);
+    $('status').textContent=`${rows.length} valid hourly reports loaded for ${cycles[0].slice(0,8)}–${cycles[cycles.length-1].slice(0,8)} UTC (${filenames.length} text files found). Missing hours are left blank.`;
+    draw();
+  } catch (error) {
+    $('status').textContent=`Unable to load GitHub text files: ${error.message}`;
+    $('status').classList.add('error');
+  } finally { $('reload').disabled=false; }
+}
+$('reload').addEventListener('click',load);
+$('endDate').addEventListener('change',load);
+$('endDate').value = utcDateText(new Date());
+load();
+</script>
+</body>
+</html>
